@@ -10,7 +10,7 @@ function App() {
   return (
     <>
     <Routes>
-       <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path='/' element={<Login/>}></Route>
       <Route path='/login' element={<Login/>}></Route>
       <Route element={<ProtectedRoutes/>}>
        <Route path='/snippets' element = {<Snippet/>}/>
