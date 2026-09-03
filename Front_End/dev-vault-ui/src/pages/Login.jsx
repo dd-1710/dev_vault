@@ -6,6 +6,7 @@ import { Card } from "../components/card";
 import { ToastMessage } from "../components/toast";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../interceptor/auth.interceptor";
+import { Loader } from "../components/Loader";
 
 export function Login() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export function Login() {
   const [successMsg, setSuccess] = useState("");
   const [errorMsg, setError] = useState("");
   const [valid, setValid] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onLoginFormErrs = (event) => {
     const { name, value } = event.target;
@@ -30,6 +32,7 @@ export function Login() {
 
   const signIn = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const res = await api.post(
         "dev-vault/auth/login",
@@ -54,11 +57,14 @@ export function Login() {
       setTimeout(()=>{
         setError("")
       },1500)
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const signUp = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const res = await api.post(
         "dev-vault/auth/signUp",
@@ -77,6 +83,8 @@ export function Login() {
        setTimeout(()=>{
         setError("")
       },1500)
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -111,7 +119,9 @@ export function Login() {
             />
           </div>
 
-          <Button type="submit"  disabled={!valid}>{isSignUp ? "Sign Up" : "Sign In"}</Button>
+          <Button type="submit" disabled={!valid || isSubmitting}>
+            {isSubmitting ? (isSignUp ? "Signing up..." : "Signing in...") : (isSignUp ? "Sign Up" : "Sign In")}
+          </Button>
           {isSignUp ? (
             <p>
               Already have an account ?{" "}
@@ -137,6 +147,7 @@ export function Login() {
       </Card>
       </div>
       <div>
+      {isSubmitting && <Loader message={isSignUp ? "Creating your account..." : "Signing you in..."} fullScreen />}
       {
         successMsg && ( <ToastMessage type="success" msg={successMsg}></ToastMessage>)
       }

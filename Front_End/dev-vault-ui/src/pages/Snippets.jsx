@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../interceptor/auth.interceptor";
 import { Card } from "../components/card";
 import { ToastMessage } from "../components/toast";
+import { Loader } from "../components/Loader";
 
 export function Snippet() {
   const navigate = useNavigate();
@@ -22,6 +23,9 @@ export function Snippet() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSignOut, setSignOut] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
 
   const userName = localStorage.getItem("userName") || null;
@@ -41,12 +45,15 @@ export function Snippet() {
           setErrorMsg("");
           navigate('/login');
         }, 2000);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchData();
   }, []);
 
   const onDeleteSnippet = async (id) => {
+    setIsDeleting(true);
     try {
       const res = await api.delete(`dev-vault/snippet/deleteSnippetByID/${id}`);
 
@@ -67,16 +74,18 @@ export function Snippet() {
       }, 2000);
     }
     finally{
+      setIsDeleting(false);
       setConfirmDelete(false);
     }
   };
 
   const signOut = () => {
+    setIsSigningOut(true);
     localStorage.removeItem("userName");
     sessionStorage.removeItem("jwt_token");
-    localStorage.removeItem("userId")
+    localStorage.removeItem("userId");
     setSignOut(false);
-    navigate("/login");
+    setTimeout(() => navigate("/login"), 300);
   };
 
   const filteredSnippets = snippets.filter(
@@ -107,14 +116,14 @@ export function Snippet() {
 
           <div className="relative">
             <div
-              title={userName.toLocaleUpperCase()}
+              title={userName?.toLocaleUpperCase()}
               className="bg-gray-700 rounded-full h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center cursor-pointer select-none shadow-sm hover:bg-gray-600 transition-colors z-30 relative"
               onClick={() => {
                 setSignOut((prev) => !prev);
               }}
             >
               <p className="text-sm font-semibold">
-                {userName.charAt(0).toUpperCase()}
+                {userName?.charAt(0).toUpperCase()}
               </p>
             </div>
 
@@ -148,7 +157,7 @@ export function Snippet() {
       <div className="py-4 sm:py-4 md:py-4 px-2">
         <p className="text-xl font-semibold text-gray-100 tracking-wide">
           Welcome{" "}
-          <span className="text-indigo-600">{userName.toUpperCase()}</span>,
+          <span className="text-indigo-600">{userName?.toUpperCase()}</span>,
           <span className="italic text-gray-300">
             {" "}
             every snippet you store is a step toward mastery.
@@ -171,7 +180,11 @@ export function Snippet() {
 
       <div className="px-3 py-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredSnippets.length > 0 ? (
+          {isLoading ? (
+            <div className="col-span-full">
+              <Loader message="Loading snippets..." />
+            </div>
+          ) : filteredSnippets.length > 0 ? (
             filteredSnippets.map((snippet, index) => (
               <div key={snippet._id || index}>
                 <Card className="group">
@@ -242,8 +255,9 @@ export function Snippet() {
                             type="button"
                             onClick={() => onDeleteSnippet(snippet._id)}
                             className="bg-red-500 hover:bg-red-600 text-white"
+                            disabled={isDeleting}
                           >
-                            Delete
+                            {isDeleting ? "Deleting..." : "Delete"}
                           </Button>
                         </div>
                       </Card>
@@ -260,6 +274,8 @@ export function Snippet() {
         </div>
       </div>
 
+      {isDeleting && <Loader message="Deleting snippet..." fullScreen />}
+      {isSigningOut && <Loader message="Signing you out..." fullScreen />}
       {successMsg && <ToastMessage type="success" msg={successMsg} />}
       {errorMsg && <ToastMessage type="error" msg={errorMsg} />}
     </div>

@@ -2,11 +2,35 @@ import { Card } from "../components/card";
 import { Input } from "../components/input";
 import { Button } from "../components/button";
 import { ToastMessage } from "../components/toast";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import Editor from "@monaco-editor/react"
 import { addSnippetValidator } from "../utils/add_snippet_validator";
 import { api } from "../../interceptor/auth.interceptor";
+import { Loader } from "../components/Loader";
+
+const languageAliases = {
+  js: "javascript",
+  jsx: "javascript",
+  javascript: "javascript",
+  "java script": "javascript",
+  ts: "typescript",
+  tsx: "typescript",
+  typescript: "typescript",
+  "type script": "typescript",
+  html: "html",
+  htm: "html",
+  css: "css",
+  scss: "scss",
+  less: "less",
+  json: "json",
+  jsonc: "json",
+};
+
+function getMonacoLanguage(language) {
+  const normalizedLanguage = language?.trim().toLowerCase();
+  return languageAliases[normalizedLanguage] || "plaintext";
+}
 
 export function AddSnippet() {
   const {id} = useParams();
@@ -25,6 +49,7 @@ export function AddSnippet() {
   
   const [successMsg, setSuccess] = useState("");
   const [errorMsg, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrs, setFormErrs] = useState({
     title : "",
     language: "",
@@ -33,11 +58,14 @@ export function AddSnippet() {
     tags: ""
   })
   const userId = localStorage.getItem('userId') || null;
+  const editorInstance = useRef(null);
+  const monacoInstance = useRef(null);
 
  
 
   const onSnippetSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       let res = ''
 
@@ -73,6 +101,8 @@ export function AddSnippet() {
       setTimeout(()=>{
         setError('')
       },1500)
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -85,6 +115,13 @@ export function AddSnippet() {
     setFormErrs(updateErrs);
     setFormData(nextData);
     setValid(Object.values({ ...updateErrs, code: addSnippetValidator("code", nextData.code) }).every((msg) => msg === ""));
+
+    if (name === "language" && editorInstance.current && monacoInstance.current) {
+      monacoInstance.current.editor.setModelLanguage(
+        editorInstance.current.getModel(),
+        getMonacoLanguage(value),
+      );
+    }
   };
 
   const onhandleCodeChange = (value) => {
@@ -93,7 +130,36 @@ export function AddSnippet() {
     setFormErrs({ ...formErrs, code: errorMsg });
     setFormData(nextData);
     setValid(Object.values({ ...formErrs, code: errorMsg }).every((msg) => msg === ""));
+
   }
+
+  const handleEditorMount = (_editor, monaco) => {
+    editorInstance.current = _editor;
+    monacoInstance.current = monaco;
+  };
+
+  const handleEditorWillMount = (monaco) => {
+    const compilerOptions = {
+      allowJs: true,
+      allowNonTsExtensions: true,
+      esModuleInterop: true,
+      module: monaco.languages.typescript.ModuleKind.ESNext,
+      moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+      noEmit: true,
+      target: monaco.languages.typescript.ScriptTarget.ES2020,
+    };
+
+    monaco.languages.typescript.javascriptDefaults.setCompilerOptions(compilerOptions);
+    monaco.languages.typescript.typescriptDefaults.setCompilerOptions(compilerOptions);
+    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: false,
+      noSyntaxValidation: false,
+    });
+    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: false,
+      noSyntaxValidation: false,
+    });
+  };
   
   const onClear = () => {
   setFormData({ title: "", language: "", code: "", desc: "", tags: "" });
@@ -143,11 +209,19 @@ export function AddSnippet() {
               <div className="h-64 sm:h-80 md:h-96 border border-gray-700 rounded-lg overflow-hidden">
                 <Editor
                   height="100%"
-                  defaultLanguage={formData.language}
+                  language={getMonacoLanguage(formData.language)}
                   name="code"
                   value={formData.code}
                   onChange={onhandleCodeChange}
+                  beforeMount={handleEditorWillMount}
+                  onMount={handleEditorMount}
                   theme="vs-dark"
+                  options={{
+                    automaticLayout: true,
+                    quickSuggestions: true,
+                    suggestOnTriggerCharacters: true,
+                    wordBasedSuggestions: "allDocuments",
+                  }}
                 ></Editor>
               </div>
               {formErrs.code && (
@@ -187,9 +261,9 @@ export function AddSnippet() {
                   ? "bg-blue-600 hover:bg-blue-700 cursor-pointer"
                   : "bg-gray-400 cursor-not-allowed"
               }`}
-              disabled={!valid}
+              disabled={!valid || isSubmitting}
             >
-              {isEdit ? "Update" : "Save"}
+              {isSubmitting ? (isEdit ? "Updating..." : "Saving...") : (isEdit ? "Update" : "Save")}
             </Button>
 
             <Button type="button" onClick={onClear}>
@@ -199,6 +273,7 @@ export function AddSnippet() {
         </form>
       </Card>
       <div>
+        {isSubmitting && <Loader message={isEdit ? "Updating snippet..." : "Saving snippet..."} fullScreen />}
         {successMsg && (
           <ToastMessage type="success" msg={successMsg}></ToastMessage>
         )}

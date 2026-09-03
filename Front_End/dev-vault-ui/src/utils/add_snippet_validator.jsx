@@ -65,4 +65,4 @@ export const addSnippetValidator = (name, value) => {
 };
 
 const titleRegex = /^[A-Za-z_][A-Za-z0-9_\s]*$/;
-const languageRegex = /^[A-Za-z][A-Za-z0-9.-_]*$/;
+const languageRegex = /^[A-Za-z][A-Za-z0-9.-_#]*$/;
