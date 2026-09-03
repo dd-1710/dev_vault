@@ -148,6 +148,17 @@ export function AddSnippet() {
                   value={formData.code}
                   onChange={onhandleCodeChange}
                   theme="vs-dark"
+                  options={{quickSuggestions: true,
+                            sugestOnTriggerCharacters: true,
+                            acceptSuggestionOnCommitCharacter: true,
+                            suggestSelection: "first",
+                            wordBasedSuggestions: true,
+                            tabCompletion: "on",
+                            snippetSuggestions: "top",
+                            autoClosingBrackets: "always",
+                            autoClosingQuotes: "always",
+                            formatOnPaste: true,
+                           }}
                 ></Editor>
               </div>
               {formErrs.code && (
