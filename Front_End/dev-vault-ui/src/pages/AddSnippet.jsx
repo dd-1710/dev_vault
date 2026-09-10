@@ -25,6 +25,9 @@ const languageAliases = {
   less: "less",
   json: "json",
   jsonc: "json",
+  cs: "csharp",
+  "c#": "csharp",
+  csharp: "csharp",
 };
 
 function getMonacoLanguage(language) {
